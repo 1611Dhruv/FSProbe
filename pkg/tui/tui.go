@@ -22,19 +22,32 @@ const (
 )
 
 type model struct {
-	list        list.Model
-	textInput   textinput.Model
-	mode        mode
-	inodeBlocks int
-	dataBlocks  int
-	choice      string
-	quitting    bool
+	list      list.Model
+	textInput textinput.Model
+	mode      mode
+
+	width, height int
+	inodeBlocks   int
+	dataBlocks    int
+	choice        string
+	quitting      bool
 }
 
 var (
 	titleStyle        = lipgloss.NewStyle().Margin(1, 2).Bold(true)
 	itemStyle         = lipgloss.NewStyle().PaddingLeft(2)
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
+	headerStyle       = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(lipgloss.Color("#0000FF")).
+				Padding(1, 2).
+				Bold(true)
+
+	paneStyle = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("#FFA500")).
+			Margin(1, 1).
+			Padding(1, 1)
 )
 
 type item struct {
@@ -102,7 +115,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tea.WindowSizeMsg:
-		m.list.SetSize(msg.Width, msg.Height)
+		m.width, m.height = msg.Width, msg.Height
 	}
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
@@ -121,7 +134,26 @@ func (m model) View() string {
 	}
 	switch m.mode {
 	case modeMenu:
-		return "\n" + m.list.View()
+		header := headerStyle.Render("Header")
+		headerHeight := lipgloss.Height(header)
+
+		paneHeight := (m.height - headerHeight) / 2
+		paneWidth := m.width / 2
+
+		pane := func(content string) string {
+			return paneStyle.
+				Width(paneWidth).
+				Height(paneHeight).
+				Render(content)
+		}
+
+		grid := lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			lipgloss.JoinVertical(lipgloss.Top, pane("Pane 1"), pane("Pane 3")),
+			lipgloss.JoinVertical(lipgloss.Top, pane("Pane 2"), pane("Pane 4")),
+		)
+
+		return lipgloss.JoinVertical(lipgloss.Top, header, grid)
 	case modeCreateFS, modeRunFS:
 		return m.textInput.View()
 	default:
@@ -172,5 +204,6 @@ func (m model) runFS() {
 
 func Start() error {
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
-	return p.Start()
+	_, err := p.Run()
+	return err
 }

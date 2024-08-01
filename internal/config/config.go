@@ -1,7 +1,15 @@
 package config
 
 import (
+	fmt "fmt"
 	"github.com/spf13/viper"
+)
+
+const (
+	BlockSize   = 4096
+	VSFMagic    = "VSF\x00\x00\x00\x00\x00"
+	MagicLength = 8
+	Alignment   = 32
 )
 
 func LoadConfig() error {
